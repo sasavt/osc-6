@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e7ece9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1514" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OSC 6.0">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+html, body { margin: 0; }
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+</style>
+<title>OSC 6.0 Fire Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calculator column on phones, input + bit panel side by side on wide screens.
+   Colour logic follows Minecraft's own axis convention: X red, Y green, Z blue. */
+:root {
+  --bg: #e7ece9;
+  --surface: #f5f8f6;
+  --raised: #ffffff;
+  --sunk: #dbe3df;
+  --ink: #15201c;
+  --muted: #56655f;
+  --line: #c2cdc8;
+  --accent: #0b6b6d;
+  --accent-ink: #ffffff;
+  --accent-soft: #cfe8e5;
+  --warn: #a3430a;
+  --warn-soft: #f5e1d1;
+  --x: #d03c27;
+  --y: #2c8f41;
+  --z: #3566d1;
+  --load: #b97c0f;
+  --code: #7048c0;
+  --lamp-off: #d3dbd7;
+  --lamp-ink: #ffffff;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1514;
+    --surface: #151e1c;
+    --raised: #1b2623;
+    --sunk: #0a100f;
+    --ink: #e3ebe8;
+    --muted: #8ea29b;
+    --line: #2a3834;
+    --accent: #4cc2be;
+    --accent-ink: #06201f;
+    --accent-soft: #163533;
+    --warn: #f2a65a;
+    --warn-soft: #3a2615;
+    --x: #ff7b64;
+    --y: #6fd47c;
+    --z: #7ea6ff;
+    --load: #f0bb52;
+    --code: #b99dff;
+    --lamp-off: #202c29;
+    --lamp-ink: #0c1412;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1514;
+  --surface: #151e1c;
+  --raised: #1b2623;
+  --sunk: #0a100f;
+  --ink: #e3ebe8;
+  --muted: #8ea29b;
+  --line: #2a3834;
+  --accent: #4cc2be;
+  --accent-ink: #06201f;
+  --accent-soft: #163533;
+  --warn: #f2a65a;
+  --warn-soft: #3a2615;
+  --x: #ff7b64;
+  --y: #6fd47c;
+  --z: #7ea6ff;
+  --load: #f0bb52;
+  --code: #b99dff;
+  --lamp-off: #202c29;
+  --lamp-ink: #0c1412;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.45 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 44px;
+}
+.wrap { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+.eyebrow { margin: 0 0 6px; font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font: 700 clamp(38px, 11vw, 56px)/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+.lede { margin: 10px 0 0; max-width: 60ch; color: var(--muted); }
+
+.status { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 12px; background: var(--raised); }
+.status.ready { border-color: var(--accent); background: var(--accent-soft); }
+.status.bad { border-color: var(--warn); background: var(--warn-soft); }
+.status-main { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.pill { font: 600 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--ink); color: var(--bg); }
+.status.ready .pill { background: var(--accent); color: var(--accent-ink); }
+.status.bad .pill { background: var(--warn); color: var(--bg); }
+.status-text { margin: 0; font: 600 17px/1.3 var(--sans); min-width: 0; flex: 1 1 220px; }
+.status-meta { display: flex; gap: 28px; flex-wrap: wrap; margin: 0; }
+.status-meta div { min-width: 0; }
+.status-meta dt { font: 500 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.status-meta dd { margin: 2px 0 0; font: 600 20px var(--mono); font-variant-numeric: tabular-nums; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.card h2 { margin: 0; font: 700 24px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.card .sub { margin: 6px 0 14px; font-size: 13px; color: var(--muted); }
+
+.coords { display: grid; grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+.coords .hd { font: 500 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ax { font: 700 16px var(--mono); color: var(--ch); }
+.ax-x { --ch: var(--x); } .ax-y { --ch: var(--y); } .ax-z { --ch: var(--z); }
+
+.in {
+  width: 100%; min-width: 0; height: 44px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--raised); color: var(--ink);
+  font: 500 16px var(--mono); font-variant-numeric: tabular-nums;
+}
+.in:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.in.bad { border-color: var(--warn); background: var(--warn-soft); }
+
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.f { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.f > .lbl, legend.lbl { font: 500 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0; }
+.f.dim { opacity: .5; }
+fieldset.f { border: 0; margin: 0; padding: 0; grid-column: 1 / -1; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--raised); }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { height: 42px; display: grid; place-items: center; font: 600 14px var(--mono); cursor: pointer; }
+.seg input:checked + label { background: var(--accent); color: var(--accent-ink); }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -3px; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+.btn { height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--raised); color: var(--ink); font: 600 13px var(--sans); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.note { margin: 0; font-size: 12px; color: var(--muted); }
+
+.rom { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 4px; }
+.lamp {
+  --ch: var(--muted);
+  aspect-ratio: 1; border-radius: 4px; border: 1px solid var(--line);
+  border-bottom: 3px solid var(--ch);
+  border-bottom-color: color-mix(in srgb, var(--ch) 60%, var(--line));
+  background: var(--lamp-off); display: grid; place-items: center;
+  font: 600 10px var(--mono); min-width: 0;
+}
+.lamp.on { background: var(--ch); border-color: var(--ch); box-shadow: 0 0 10px -2px var(--ch); }
+.lamp[data-mk]::after { content: attr(data-mk); color: var(--muted); }
+.lamp.on[data-mk]::after { color: var(--lamp-ink); }
+.c-x { --ch: var(--x); } .c-y { --ch: var(--y); } .c-z { --ch: var(--z); }
+.c-load { --ch: var(--load); } .c-code { --ch: var(--code); }
+@media (prefers-reduced-motion: no-preference) {
+  .lamp { transition: background-color .15s, box-shadow .15s; }
+}
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; background: var(--ch); display: inline-block; }
+.mono-mark { font: 600 11px var(--mono); }
+.copybox { width: 100%; margin-top: 10px; min-height: 96px; font: 500 14px/1.3 var(--mono); background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+
+.scroll { overflow-x: auto; }
+.tbl { border-collapse: collapse; width: 100%; font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.tbl th { font: 500 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 0 8px 8px; white-space: nowrap; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; padding-left: 0; }
+.tbl td { text-align: right; padding: 8px; border-top: 1px solid var(--line); white-space: nowrap; }
+.tbl td.k { color: var(--muted); }
+.tbl .ax { font-size: 15px; }
+
+.codes { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; max-height: 280px; overflow-y: auto; padding: 2px; }
+.code { height: 36px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); color: var(--ink); font: 500 13px var(--mono); font-variant-numeric: tabular-nums; cursor: pointer; padding: 0; }
+.code:hover { border-color: var(--accent); }
+.code:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.code[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.foot { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+</style>
+
+<main class="wrap">
+  <header>
+    <p class="eyebrow">Orbital Strike Cannon · Mark 6</p>
+    <h1>OSC 6.0 Fire Control</h1>
+    <p class="lede">Введите координаты пушки и цели. Страница считает счётчики и показывает, какие ячейки нужно включить.</p>
+  </header>
+
+  <section class="status ready" id="status" aria-live="polite">
+    <div class="status-main">
+      <span class="pill" id="pill">Готово</span>
+      <p class="status-text" id="statusText"></p>
+    </div>
+    <dl class="status-meta">
+      <div><dt>Время цикла</dt><dd id="cycle">—</dd></div>
+      <div><dt>Выстрел</dt><dd id="shot">—</dd></div>
+    </dl>
+  </section>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="hIn">
+      <h2 id="hIn">Ввод</h2>
+      <p class="sub">Координаты пушки кратны 16 по всем осям.</p>
+      <div class="coords">
+        <span></span><span class="hd">Origin (пушка)</span><span class="hd">Target (цель)</span>
+        <span class="ax ax-x">X</span>
+        <input class="in" id="ox" type="number" step="any" aria-label="Origin X" value="0">
+        <input class="in" id="tx" type="number" step="any" aria-label="Target X" value="1500">
+        <span class="ax ax-y">Y</span>
+        <input class="in" id="oy" type="number" step="any" aria-label="Origin Y" value="64">
+        <input class="in" id="ty" type="number" step="any" aria-label="Target Y" value="70">
+        <span class="ax ax-z">Z</span>
+        <input class="in" id="oz" type="number" step="any" aria-label="Origin Z" value="0">
+        <input class="in" id="tz" type="number" step="any" aria-label="Target Z" value="-2400">
+      </div>
+
+      <div class="opts">
+        <fieldset class="f">
+          <legend class="lbl">Type</legend>
+          <div class="seg">
+            <input type="radio" name="type" id="typeNuke" value="nuke" checked><label for="typeNuke">nuke</label>
+            <input type="radio" name="type" id="typeStab" value="stab"><label for="typeStab">stab</label>
+          </div>
+        </fieldset>
+        <div class="f" id="fSize">
+          <label class="lbl" for="size">Nuke size</label>
+          <input class="in" id="size" type="number" step="any" value="8">
+        </div>
+        <div class="f" id="fDepth">
+          <label class="lbl" for="depth">Stab depth</label>
+          <input class="in" id="depth" type="number" step="any" value="20">
+        </div>
+        <div class="f">
+          <label class="lbl" for="mps">MPS #</label>
+          <input class="in" id="mps" type="number" step="any" value="0">
+        </div>
+        <div class="f">
+          <label class="lbl" for="code">Passcode</label>
+          <input class="in" id="code" type="number" step="1" value="940">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="reset">Вернуть пример</button>
+        <p class="note" id="sample">Показан пример. Подставьте свои координаты.</p>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="hBits">
+      <h2 id="hBits">Битовая схема</h2>
+      <p class="sub">Горит значит 1. Цвет показывает, к какой оси относится ячейка.</p>
+      <div class="rom" id="rom" role="group" aria-label="Битовая схема"></div>
+      <ul class="legend">
+        <li><span class="sw" style="--ch:var(--x)"></span>X</li>
+        <li><span class="sw" style="--ch:var(--y)"></span>Y</li>
+        <li><span class="sw" style="--ch:var(--z)"></span>Z</li>
+        <li><span class="sw" style="--ch:var(--load)"></span>Нагрузка</li>
+        <li><span class="sw" style="--ch:var(--code)"></span>Passcode</li>
+        <li><span class="mono-mark">±</span>знак оси</li>
+        <li><span class="mono-mark">N</span>тип nuke</li>
+      </ul>
+      <div class="actions">
+        <button class="btn" type="button" id="copy">Скопировать схему</button>
+      </div>
+      <textarea class="copybox" id="copybox" readonly hidden aria-label="Схема в виде текста"></textarea>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="hCalc">
+    <h2 id="hCalc">Расчёт по осям</h2>
+    <p class="sub">Count считается из Diff и констант dV. Coarse и Fine идут в схему.</p>
+    <div class="scroll"><table class="tbl" id="calc"></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="hHit">
+    <h2 id="hHit">Точка попадания</h2>
+    <p class="sub">Exact Pos считается из округлённых Coarse и Fine. Nether Pos это позиция пушки в Незере.</p>
+    <div class="scroll"><table class="tbl" id="hit"></table></div>
+    <p class="note" style="margin-top:10px">Для Y отклонение не считается: в формулу входит смещение по высоте.</p>
+  </section>
+
+  <section class="card" aria-labelledby="hCodes">
+    <h2 id="hCodes">Проверенные коды</h2>
+    <p class="sub">Ни разу не дали сбой за более чем 10 000 циклов. Нажмите на код, чтобы подставить его в Passcode.</p>
+    <div class="codes" id="codes"></div>
+  </section>
+
+  <p class="foot">Формулы перенесены из таблицы OSC 6.0 Fire Control. Расчёт идёт в браузере, данные никуда не отправляются.</p>
+</main>
+
+<script>
+/*CORE*/
+const JP = 8.75555328715152, KM = -8.66459105578996, JY = 8.81621606916826, KY = -0.596968396919667;
+const MAXC = 32767.999, MAXH = 31.999;
+const GOOD = [63,95,111,123,125,126,175,189,190,191,223,235,238,239,243,250,251,254,287,303,311,315,318,335,351,359,365,367,373,377,378,380,382,413,415,423,429,430,437,438,439,445,446,447,459,474,475,479,483,489,490,491,494,495,499,503,505,511,559,567,573,575,591,599,605,607,619,621,622,623,629,630,631,633,635,636,637,639,655,671,679,683,685,686,687,691,693,694,695,697,699,701,702,703,711,717,718,719,727,730,733,735,739,742,743,745,746,747,748,749,750,751,753,754,755,756,758,761,763,764,765,766,767,783,791,797,799,807,811,813,814,815,821,822,823,825,827,828,829,830,831,839,843,846,847,854,855,857,859,862,863,867,869,871,873,875,876,877,879,881,882,884,885,886,887,892,893,894,895,909,917,921,923,931,933,934,935,937,938,939,940,941,942,943,949,950,951,953,956,957,958,973,974,979,982,986,987,988,990,991,994,995,997,998,999,1001,1002,1003,1005,1006,1007,1009,1011,1013,1014,1017,1018,1019,1020,1021,1022,1023];
+const GOOD_SET = new Set(GOOD);
+const mod = (a, m) => ((a % m) + m) % m;
+const bit = (v, d) => mod(Math.floor(v / d), 2);
+
+function horiz(I) {
+  if (I / (0.9 * JP) > MAXC) return MAXC;
+  if (I / (0.9 * KM) > MAXC) return MAXC;
+  return I >= 0 ? I / (0.9 * JP) : I / (0.9 * KM);
+}
+function split(L) {
+  const M = Math.floor(L);
+  return { M, N: Math.round(10 * (L - M)) };
+}
+
+function compute(s) {
+  const { ox, oy, oz, tx, ty, tz, type, size, depth, mps, code } = s;
+  const nuke = type === 'nuke';
+
+  const I3 = nuke ? 140 + ty - (oy + 2.1875) : 106.92 + 44.4 + ty - (oy + 2.1875);
+  let L3;
+  if (I3 / (1.5 * JY) > MAXH) L3 = MAXH;
+  else if (I3 < 50) L3 = 50 / (1.5 * JY);
+  else L3 = I3 / (1.5 * JY);
+  const { M: M3, N: N3 } = split(L3);
+
+  const I2 = tx - (ox + (M3 + N3 / 10) * KY + 22.51 + mps);
+  const L2 = horiz(I2);
+  const { M: M2, N: N2 } = split(L2);
+
+  const I4 = tz - oz;
+  const L4 = horiz(I4);
+  const { M: M4, N: N4 } = split(L4);
+
+  const dist = Math.hypot(tx - ox, tz - oz);
+  const stabRows = Math.ceil(depth / (9 * 0.99));
+  const pay = nuke ? size : stabRows;
+
+  const unaligned = mod(ox, 16) > 0 || mod(oy, 16) > 0 || mod(oz, 16) > 0;
+  const outOfRange = I2 / (0.9 * JP) > MAXC || I2 / (0.9 * KM) > MAXC || I4 / (0.9 * JP) > MAXC || I4 / (0.9 * KM) > MAXC;
+  const tooClose = dist < 64 || (L2 < 1 && L4 < 1);
+  const tooHigh = I3 / (1.5 * JY) > MAXH;
+  const tooLow = I3 < 50;
+  const goodCode = GOOD_SET.has(code);
+
+  const invalid = unaligned || size > 16 || L2 >= MAXC || L4 >= MAXC || L3 >= MAXH || dist < 64 ||
+    (L2 < 1 && L4 < 1) || I3 < 50 || size < 1 || depth < 1 || stabRows > 31 || !goodCode;
+
+  let msg = '';
+  if (unaligned) msg = 'Позиция пушки не выровнена по чанку: X, Y и Z должны делиться на 16.';
+  else if (outOfRange) msg = 'Цель вне радиуса действия.';
+  else if (tooClose) msg = 'Цель слишком близко, пушка не инициализируется. Нужно минимум 64 блока.';
+  else if (tooHigh) msg = 'Цель слишком высоко.';
+  else if (tooLow) msg = 'Цель слишком низко.';
+  else if (size < 1 || depth < 1) msg = 'Размер и глубина должны быть больше 0.';
+  else if (size > 31) msg = 'Размер нюка не может быть больше 31.';
+  else if (depth > 276) msg = 'Глубина стаба не может быть больше 276.';
+  else if (!goodCode) msg = 'Выберите код из списка проверенных, так надёжнее.';
+  else if (size > 16) msg = 'Нюк размером больше 16 может вызвать лаги.';
+
+  let seconds = null;
+  if (nuke && size >= 1) {
+    const n = Math.floor(size);
+    const ticks = 930 + 6 * (n * (n + 1) / 2 + 2.4375 * n + Math.max(M2, M4) + M3 + 2);
+    seconds = Math.ceil(ticks / 20);
+  } else if (!nuke && depth >= 1) {
+    const ticks = 1300 + 6 * (2 * Math.round(depth / (9 * 0.99)) + Math.max(M2, M4) + M3 + 2);
+    seconds = Math.ceil(ticks / 20);
+  }
+
+  const cx = M2 + N2 / 10, cy = M3 + N3 / 10, cz = M4 + N4 / 10;
+  const exactX = (ox + cy * KY + 22.51 + mps) + (I2 >= 0 ? 0.9 * JP * cx : 0.9 * KM * cx);
+  const exactY = oy + 2.1875 + 1.5 * JY * cy;
+  const exactZ = oz + (I4 >= 0 ? 0.9 * JP * cz : 0.9 * KM * cz);
+
+  const cell = (v, ch, tip, mk) => ({ v, ch, tip, mk });
+  const col = (arr) => arr;
+  const grid = [[], [], [], [], []];
+  const put = (c, cells) => cells.forEach((x, r) => { grid[r][c] = x; });
+
+  put(0, [1, 2, 4, 8, 16].map(d => cell(bit(M4, d), 'z', 'Z coarse ' + d)));
+  put(1, [32, 64, 128, 256, 512].map(d => cell(bit(M4, d), 'z', 'Z coarse ' + d)));
+  put(2, [1024, 2048, 4096, 8192, 16384].map(d => cell(bit(M4, d), 'z', 'Z coarse ' + d)));
+  put(3, [
+    ...[8, 4, 2, 1].map(d => cell(1 - bit(N4, d), 'z', 'Z fine, инверсия ' + d)),
+    cell(I4 < 0 ? 1 : 0, 'z', 'Z знак (минус)', '±')
+  ]);
+  put(4, [
+    ...[8, 4, 2, 1].map(d => cell(1 - bit(N3, d), 'y', 'Y fine, инверсия ' + d)),
+    cell(bit(M3, 16), 'y', 'Y coarse 16')
+  ]);
+  put(5, [
+    ...[8, 4, 2, 1].map(d => cell(bit(M3, d), 'y', 'Y coarse ' + d)),
+    cell(I2 < 0 ? 1 : 0, 'x', 'X знак (минус)', '±')
+  ]);
+  put(6, [
+    ...[8, 4, 2, 1].map(d => cell(1 - bit(N2, d), 'x', 'X fine, инверсия ' + d)),
+    cell(bit(M2, 16384), 'x', 'X coarse 16384')
+  ]);
+  put(7, [
+    ...[8192, 4096, 2048, 1024].map(d => cell(bit(M2, d), 'x', 'X coarse ' + d)),
+    cell(bit(M2, 512), 'x', 'X coarse 512')
+  ]);
+  put(8, [
+    ...[256, 128, 64, 32].map(d => cell(bit(M2, d), 'x', 'X coarse ' + d)),
+    cell(bit(M2, 16), 'x', 'X coarse 16')
+  ]);
+  put(9, [
+    ...[8, 4, 2, 1].map(d => cell(bit(M2, d), 'x', 'X coarse ' + d)),
+    cell(bit(pay, 1), 'load', 'Нагрузка 1')
+  ]);
+  put(10, [
+    ...[2, 4, 8, 16].map(d => cell(bit(pay, d), 'load', 'Нагрузка ' + d)),
+    cell(nuke ? 1 : 0, 'load', 'Тип: nuke', 'N')
+  ]);
+  put(11, [512, 256, 128, 64, 32].map(d => cell(bit(code, d), 'code', 'Passcode ' + d)));
+  put(12, [16, 8, 4, 2, 1].map(d => cell(bit(code, d), 'code', 'Passcode ' + d)));
+
+  const rows = grid.map(row => row.slice());
+  const flat = [];
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 13; c++) flat.push(rows[r][c]);
+
+  return {
+    invalid, msg, seconds, goodCode, dist, flat,
+    axes: {
+      x: { diff: I2, dp: JP, dm: KM, count: L2, M: M2, N: N2 },
+      y: { diff: I3, dp: JY, dm: KY, count: L3, M: M3, N: N3 },
+      z: { diff: I4, dp: JP, dm: KM, count: L4, M: M4, N: N4 }
+    },
+    exact: { x: exactX, y: exactY, z: exactZ },
+    nether: { x: ox / 8, y: Math.min(Math.max(oy, 6), 196), z: oz / 8 },
+    flags: {
+      oxBad: mod(ox, 16) > 0, oyBad: mod(oy, 16) > 0, ozBad: mod(oz, 16) > 0,
+      txBad: L2 >= MAXC || tooClose,
+      tyBad: L3 >= MAXH || I3 < 50,
+      tzBad: L4 >= MAXC || tooClose,
+      sizeBad: size < 1 || size > 16,
+      depthBad: depth < 1 || depth > 276,
+      codeBad: !goodCode
+    }
+  };
+}
+/*ENDCORE*/
+
+const SAMPLE = { ox: 0, oy: 64, oz: 0, tx: 1500, ty: 70, tz: -2400, type: 'nuke', size: 8, depth: 20, mps: 0, code: 940 };
+const IDS = ['ox', 'oy', 'oz', 'tx', 'ty', 'tz', 'size', 'depth', 'mps', 'code'];
+const $ = (id) => document.getElementById(id);
+const num = (id) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
+const fx = (n, d) => (Number.isFinite(n) ? n.toFixed(d) : '—');
+const KEY = 'osc6-fire-control';
+let edited = false;
+
+function read() {
+  const s = { type: document.querySelector('input[name="type"]:checked').value };
+  IDS.forEach((id) => { s[id] = num(id); });
+  return s;
+}
+function write(s) {
+  IDS.forEach((id) => { $(id).value = s[id]; });
+  $(s.type === 'stab' ? 'typeStab' : 'typeNuke').checked = true;
+}
+function clock(sec) {
+  if (sec === null) return '—';
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+
+function update() {
+  const s = read();
+  const r = compute(s);
+
+  $('status').className = 'status ' + (r.invalid ? 'bad' : 'ready');
+  $('pill').textContent = r.invalid ? 'Проверьте' : 'Готово';
+  $('statusText').textContent = r.invalid
+    ? (r.msg || 'Параметры вне допустимого диапазона.')
+    : (r.msg || 'Параметры в норме. Схему ниже можно переносить на пушку.');
+  $('cycle').textContent = clock(r.seconds);
+  $('shot').textContent = s.type === 'nuke' ? 'nuke · ' + s.size : 'stab · ' + s.depth;
+
+  $('fSize').classList.toggle('dim', s.type !== 'nuke');
+  $('fDepth').classList.toggle('dim', s.type !== 'stab');
+
+  const bad = { ox: r.flags.oxBad, oy: r.flags.oyBad, oz: r.flags.ozBad, tx: r.flags.txBad, ty: r.flags.tyBad, tz: r.flags.tzBad, size: r.flags.sizeBad, depth: r.flags.depthBad, code: r.flags.codeBad };
+  Object.keys(bad).forEach((id) => { $(id).classList.toggle('bad', !!bad[id]); $(id).setAttribute('aria-invalid', bad[id] ? 'true' : 'false'); });
+
+  $('rom').innerHTML = r.flat.map((c) =>
+    '<span class="lamp c-' + c.ch + (c.v ? ' on' : '') + '"' + (c.mk ? ' data-mk="' + c.mk + '"' : '') + ' title="' + c.tip + (c.v ? ': 1' : ': 0') + '"></span>'
+  ).join('');
+  $('rom').setAttribute('aria-label', 'Битовая схема: ' + patternText(r).split('\n').join(', '));
+
+  const ax = (k) => '<span class="ax ax-' + k + '">' + k.toUpperCase() + '</span>';
+  const a = r.axes;
+  $('calc').innerHTML =
+    '<thead><tr><th></th><th>Diff</th><th>dV(+)</th><th>dV(−)</th><th>Count</th><th>Coarse</th><th>Fine</th></tr></thead><tbody>' +
+    ['x', 'y', 'z'].map((k) =>
+      '<tr><td>' + ax(k) + '</td><td>' + fx(a[k].diff, 3) + '</td><td class="k">' + fx(a[k].dp, 4) + '</td><td class="k">' + fx(a[k].dm, 4) +
+      '</td><td>' + fx(a[k].count, 4) + '</td><td>' + a[k].M + '</td><td>' + a[k].N + '</td></tr>'
+    ).join('') + '</tbody>';
+
+  const tgt = { x: s.tx, y: s.ty, z: s.tz };
+  $('hit').innerHTML =
+    '<thead><tr><th></th><th>Target</th><th>Exact Pos</th><th>Откл.</th><th>Nether Pos</th></tr></thead><tbody>' +
+    ['x', 'y', 'z'].map((k) =>
+      '<tr><td>' + ax(k) + '</td><td>' + fx(tgt[k], 2) + '</td><td>' + fx(r.exact[k], 3) + '</td><td class="k">' +
+      (k === 'y' ? '—' : fx(r.exact[k] - tgt[k], 3)) + '</td><td>' + fx(r.nether[k], 3) + '</td></tr>'
+    ).join('') + '</tbody>';
+
+  document.querySelectorAll('.code').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.code) === s.code)));
+
+  $('sample').hidden = edited;
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* storage unavailable */ }
+  return r;
+}
+
+function patternText(r) {
+  const lines = [];
+  for (let row = 0; row < 5; row++) {
+    let line = '';
+    for (let c = 0; c < 13; c++) line += r.flat[row * 13 + c].v;
+    lines.push(line);
+  }
+  return lines.join('\n');
+}
+
+function boot() {
+  $('codes').innerHTML = GOOD.map((c) => '<button type="button" class="code" data-code="' + c + '" aria-pressed="false">' + c + '</button>').join('');
+  $('codes').addEventListener('click', (e) => {
+    const b = e.target.closest('.code');
+    if (!b) return;
+    $('code').value = b.dataset.code;
+    edited = true;
+    update();
+  });
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && typeof saved === 'object' && IDS.every((id) => Number.isFinite(saved[id])) && (saved.type === 'nuke' || saved.type === 'stab')) {
+      write(saved);
+      edited = JSON.stringify(saved) !== JSON.stringify(SAMPLE);
+    }
+  } catch (e) { /* ignore broken storage */ }
+
+  const onEdit = () => { edited = true; update(); };
+  IDS.forEach((id) => $(id).addEventListener('input', onEdit));
+  document.querySelectorAll('input[name="type"]').forEach((el) => el.addEventListener('change', onEdit));
+
+  $('reset').addEventListener('click', () => { write(SAMPLE); edited = false; update(); });
+
+  $('copy').addEventListener('click', () => {
+    const text = patternText(update());
+    const box = $('copybox');
+    const fallback = () => { box.hidden = false; box.value = text; box.focus(); box.select(); };
+    try {
+      navigator.clipboard.writeText(text).then(() => { $('copy').textContent = 'Скопировано'; setTimeout(() => { $('copy').textContent = 'Скопировать схему'; }, 1600); }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  update();
+}
+boot();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
